@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# বংশতালিকা / Family Genealogy
 
-## Getting Started
+This Bengali-aware genealogy workspace uses Next.js, Supabase, and optional Gemini document extraction. Uploaded documents remain private in Supabase Storage; AI output is stored as reviewable candidates and is never written to the canonical tree without editor approval.
 
-First, run the development server:
+## Local setup
 
 ```bash
+cd family-tree-app
+npm ci
+copy .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Set `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and the server-only `SUPABASE_SERVICE_ROLE_KEY`. Set `GEMINI_API_KEY` only when AI processing is required; the app reports an explicit configuration error instead of silently fabricating extraction results.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run `migrations/001_initial_schema.sql` followed by `migrations/002_production_hardening.sql` in the Supabase SQL editor (or with `supabase db push`). Migration 002 creates the private `documents` bucket and its policies. Never expose the service-role key to browser code.
 
-## Learn More
+The schema includes normalized people and relationships, provenance links, document pages, processing jobs, review items, duplicate candidates, and append-only change history. Use short-lived signed URLs for document previews.
 
-To learn more about Next.js, take a look at the following resources:
+## Main flows
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/dashboard/upload` uploads validated images/PDFs and queues AI work.
+- `/dashboard/review` approves, edits, defers, or rejects extracted people.
+- `/dashboard/tree`, `/dashboard/people`, and `/dashboard/people/:id` browse the verified tree with Bengali-aware search.
+- `/dashboard/export` provides JSON, CSV, and GEDCOM downloads.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+AI jobs are started with `POST /api/processing/:jobId`. In production, invoke that endpoint from a queue/worker rather than a user request, and keep retries bounded by `processing_jobs.max_attempts`.
 
-## Deploy on Vercel
+## Verification, backups, and deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run `npm run lint`, `npm run typecheck`, and `npm run build`. Configure Supabase daily backups/PITR before importing historical records. Deploy to Vercel or another Node host with the same environment variables, and restrict logs because names and source documents are sensitive data.

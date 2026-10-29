@@ -34,7 +34,18 @@ export async function POST(request: NextRequest) {
   const approximate_date = formData.get('approximate_date') as string
   const notes = formData.get('notes') as string
   const tagsStr = formData.get('tags') as string
-  const tags = tagsStr ? JSON.parse(tagsStr) : []
+  let tags: string[] = []
+  if (tagsStr) {
+    try {
+      const parsedTags: unknown = JSON.parse(tagsStr)
+      if (!Array.isArray(parsedTags) || parsedTags.some(tag => typeof tag !== 'string')) {
+        return NextResponse.json({ error: 'ট্যাগের ফরম্যাট সঠিক নয়' }, { status: 400 })
+      }
+      tags = parsedTags.slice(0, 50)
+    } catch {
+      return NextResponse.json({ error: 'ট্যাগের JSON সঠিক নয়' }, { status: 400 })
+    }
+  }
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'নথির শিরোনাম আবশ্যক' }, { status: 400 })
