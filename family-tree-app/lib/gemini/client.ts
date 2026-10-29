@@ -6,25 +6,14 @@ import type { AIExtractionResult, ExtractedPersonCandidate, ExtractedRelationshi
 // Gemini AI Client - SERVER SIDE ONLY
 // ============================================================
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY
-
-if (!GEMINI_API_KEY) {
-  console.warn(
-    '⚠️  GEMINI_API_KEY is not set. AI document analysis will be unavailable.\n' +
-    'Get your API key from: https://aistudio.google.com/app/apikey\n' +
-    'Add it to .env.local as: GEMINI_API_KEY=your-key-here'
-  )
-}
-
 const MODEL_NAME = process.env.GEMINI_MODEL || 'gemini-1.5-pro'
 
 function getGeminiClient() {
-  if (!GEMINI_API_KEY) {
-    throw new Error(
-      'Gemini API key is not configured. Please add GEMINI_API_KEY to your .env.local file.'
-    )
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('Gemini is not configured: set GEMINI_API_KEY in .env.local before processing documents.')
   }
-  return new GoogleGenerativeAI(GEMINI_API_KEY)
+  return new GoogleGenerativeAI(apiKey)
 }
 
 // ============================================================
@@ -220,17 +209,7 @@ Return a JSON object with exactly this structure:
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown AI error'
-
-    // Return a structured error result
-    return {
-      document_id: documentId,
-      page_id: pageId,
-      people: [],
-      relationships: [],
-      unresolved_items: [],
-      warnings: [`AI analysis failed: ${errorMessage}`],
-      processing_notes: `Error during analysis: ${errorMessage}`,
-    }
+    throw new Error(`Gemini extraction failed for ${documentId}/${pageId}: ${errorMessage}`)
   }
 }
 
@@ -302,14 +281,7 @@ Return valid JSON matching the genealogy extraction schema.`
     return AIExtractionResultSchema.parse(parsedData) as AIExtractionResult
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return {
-      document_id: documentId,
-      page_id: pageId,
-      people: [],
-      relationships: [],
-      unresolved_items: [],
-      warnings: [`PDF analysis failed: ${errorMessage}`],
-    }
+    throw new Error(`Gemini PDF extraction failed for ${documentId}/${pageId}: ${errorMessage}`)
   }
 }
 
