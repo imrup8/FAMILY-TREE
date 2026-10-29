@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import type { ReactElement } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -42,6 +42,14 @@ function NavIcon({ name }: { name: string }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen" style={{ background: 'var(--color-bg)' }} />}>
+      <DashboardShell>{children}</DashboardShell>
+    </Suspense>
+  )
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [pendingCount, setPendingCount] = useState(0)
